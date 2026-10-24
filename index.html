@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internship e-Logbook</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PWA Requirements -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+</head>
+<body class="bg-gray-100 p-4 sm:p-6">
+
+    <div class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md">
+        
+        <div id="connection-status" class="hidden bg-yellow-100 text-yellow-800 p-2 rounded mb-4 text-sm text-center font-bold border border-yellow-300">
+            ⚠️ You are offline. Logs will be saved locally and synced when you reconnect.
+        </div>
+
+        <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">Internship e-Logbook</h1>
+
+        <!-- ================= LOGIN SECTION ================= -->
+        <div id="login-section">
+            <h2 class="text-xl font-semibold mb-4">Secure Login</h2>
+            <div id="email-step">
+                <input type="email" id="email" placeholder="Enter your email" class="w-full p-2 border rounded mb-4" required>
+                <button onclick="requestOTP()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Send Login Code</button>
+            </div>
+            <div id="otp-step" class="hidden mt-4">
+                <input type="text" id="otp" placeholder="Enter 6-digit code" class="w-full p-2 border rounded mb-4">
+                <button onclick="verifyOTP()" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Verify & Login</button>
+            </div>
+            <p id="login-msg" class="text-red-500 text-sm mt-2"></p>
+        </div>
+
+        <!-- ================= STUDENT DASHBOARD ================= -->
+        <div id="student-section" class="hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b pb-4">
+                <h2 class="text-xl font-semibold">Submit Daily Log</h2>
+                <div class="flex items-center gap-4">
+                    <button onclick="generateReport()" class="text-sm bg-gray-800 text-white px-4 py-2 rounded hover:bg-black whitespace-nowrap">Download Final PDF</button>
+                    <button onclick="logout()" class="text-sm text-red-500 underline whitespace-nowrap">Logout</button>
+                </div>
+            </div>
+            
+            <button type="button" id="loadDraftBtn" onclick="loadDraft()" class="hidden w-full bg-gray-200 text-gray-800 p-2 rounded mb-4 text-sm hover:bg-gray-300 font-semibold">
+                Load Saved Draft
+            </button>
+
+            <form id="logForm" onsubmit="submitLog(event)">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Log Date</label>
+                        <input type="date" id="date" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Start / End Time</label>
+                        <div class="flex gap-2">
+                            <input type="time" id="startTime" class="w-full p-2 border rounded" required>
+                            <input type="time" id="endTime" class="w-full p-2 border rounded" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <textarea id="tasks" placeholder="1. Duties assigned and tasks completed" class="w-full p-2 border rounded mb-4 h-24" required></textarea>
+                <textarea id="reflection" placeholder="2. Learning reflection" class="w-full p-2 border rounded mb-4 h-24" required></textarea>
+                <textarea id="challenges" placeholder="3. Challenges and solutions" class="w-full p-2 border rounded mb-4 h-24" required></textarea>
+                
+                <label class="block text-sm font-medium mb-2">4. Skills developed (Select all that apply)</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6 border p-4 rounded bg-gray-50">
+                    <label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" name="skills" value="Technical / professional skills" class="w-5 h-5 text-blue-600 rounded cursor-pointer"><span class="text-sm font-medium text-gray-700">Technical / professional skills</span></label>
+                    <label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" name="skills" value="Communication and teamwork" class="w-5 h-5 text-blue-600 rounded cursor-pointer"><span class="text-sm font-medium text-gray-700">Communication and teamwork</span></label>
+                    <label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" name="skills" value="Problem-solving and critical thinking" class="w-5 h-5 text-blue-600 rounded cursor-pointer"><span class="text-sm font-medium text-gray-700">Problem-solving and critical thinking</span></label>
+                    <label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" name="skills" value="Professional ethics and responsibility" class="w-5 h-5 text-blue-600 rounded cursor-pointer"><span class="text-sm font-medium text-gray-700">Professional ethics and responsibility</span></label>
+                    <div class="flex flex-col space-y-2 md:col-span-2">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="skills-other-checkbox" class="w-5 h-5 text-blue-600 rounded cursor-pointer" onchange="toggleOtherSkill()">
+                            <span class="text-sm font-medium text-gray-700">Other (Please specify)</span>
+                        </label>
+                        <input type="text" id="skills-other-text" placeholder="Type custom skill here..." class="hidden w-full p-2 border rounded text-sm outline-blue-500">
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 mt-2">
+                    <button type="button" id="draftBtn" onclick="saveDraft()" class="flex-1 bg-gray-500 text-white p-3 rounded font-bold hover:bg-gray-600">Save Draft</button>
+                    <button type="submit" id="submitBtn" class="flex-1 bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700">Submit Log</button>
+                    <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="hidden flex-1 bg-gray-400 text-white p-3 rounded font-bold hover:bg-gray-500">Cancel Edit</button>
+                </div>
+            </form>
+            <p id="form-msg" class="mt-4 text-center font-semibold text-green-600"></p>
+
+            <h3 class="text-lg font-bold mt-10 mb-4 border-b pb-2">My Log History</h3>
+            <div class="overflow-x-auto w-full mb-6 border rounded-lg">
+                <table class="w-full text-left border-collapse min-w-max">
+                    <thead>
+                        <tr class="bg-gray-200 text-sm">
+                            <th class="p-2 border whitespace-nowrap">Date</th>
+                            <th class="p-2 border whitespace-nowrap">Status</th>
+                            <th class="p-2 border whitespace-nowrap min-w-[200px]">Feedback</th>
+                            <th class="p-2 border whitespace-nowrap text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-logs-body" class="text-sm">
+                        <tr><td colspan="4" class="p-4 text-center text-gray-500">Loading history...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ================= INDUSTRIAL SUPERVISOR DASHBOARD ================= -->
+        <div id="supervisor-section" class="hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b pb-4">
+                <h2 class="text-xl font-semibold">Pending Approvals & Assessments</h2>
+                <button onclick="logout()" class="text-sm text-red-500 underline whitespace-nowrap">Logout</button>
+            </div>
+
+            <div class="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h3 class="font-bold text-blue-800">Practicum Assessment</h3>
+                    <p class="text-sm text-blue-600">Submit the mandatory performance evaluations.</p>
+                </div>
+                <button onclick="openAssessmentModal()" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow font-semibold">Evaluate Student</button>
+            </div>
+
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse min-w-max">
+                    <thead>
+                        <tr class="bg-gray-200 text-sm">
+                            <th class="p-2 border whitespace-nowrap">Date</th>
+                            <th class="p-2 border whitespace-nowrap">Student</th>
+                            <th class="p-2 border whitespace-nowrap">Status</th>
+                            <th class="p-2 border whitespace-nowrap">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-table-body" class="text-sm">
+                        <tr><td colspan="4" class="p-4 text-center text-gray-500">Loading logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ================= UNIVERSITY LECTURER DASHBOARD ================= -->
+        <div id="lecturer-section" class="hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b pb-4">
+                <h2 class="text-xl font-semibold">Cohort Monitoring Dashboard</h2>
+                <button onclick="logout()" class="text-sm text-red-500 underline whitespace-nowrap">Logout</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" id="lecturer-summary"></div>
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse min-w-max">
+                    <thead>
+                        <tr class="bg-gray-200 text-sm">
+                            <th class="p-2 border whitespace-nowrap">Student</th>
+                            <th class="p-2 border text-center whitespace-nowrap">Total Logs</th>
+                            <th class="p-2 border text-center text-green-600 whitespace-nowrap">Approved</th>
+                            <th class="p-2 border text-center text-blue-600 whitespace-nowrap">Pending</th>
+                            <th class="p-2 border text-center text-yellow-600 whitespace-nowrap">Revisions</th>
+                            <th class="p-2 border text-center whitespace-nowrap">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lecturer-table-body" class="text-sm">
+                        <tr><td colspan="6" class="p-4 text-center text-gray-500">Loading student data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= REVIEW MODAL ================= -->
+    <div id="review-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
+        <div class="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">Review Student Log</h3>
+            <div id="modal-content" class="mb-4 text-sm text-gray-700 space-y-3"></div>
+            
+            <label class="block text-sm font-bold mb-1">Supervisor Feedback</label>
+            <textarea id="supervisor-feedback" class="w-full p-2 border rounded mb-4 h-24" placeholder="Add comments here (mandatory for revisions/rejections)"></textarea>
+            
+            <div class="flex flex-wrap gap-2">
+                <button onclick="processReview('Approved')" class="flex-1 min-w-[100px] bg-green-600 text-white p-2 rounded hover:bg-green-700">Approve</button>
+                <button onclick="processReview('Revision Required')" class="flex-1 min-w-[100px] bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600">Request Revision</button>
+                <button onclick="processReview('Rejected')" class="flex-1 min-w-[100px] bg-red-600 text-white p-2 rounded hover:bg-red-700">Reject</button>
+                <button onclick="closeModal()" class="flex-1 min-w-[100px] bg-gray-400 text-white p-2 rounded hover:bg-gray-500">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= EVALUATION MODAL ================= -->
+    <div id="assessment-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-2 sm:p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+                <h3 class="text-lg sm:text-xl font-bold text-gray-800">Employer's Assessment of Student Performance</h3>
+                <button onclick="closeAssessmentModal()" class="text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
+            </div>
+            
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-gray-50">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-bold mb-1">Select Student</label>
+                        <select id="eval-student-select" class="w-full p-2 border rounded bg-white" required>
+                            <option value="">-- Choose Student --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-1">Assessment Period</label>
+                        <select id="eval-period" class="w-full p-2 border rounded bg-white" required>
+                            <option value="First 3 Months">First 3 Months</option>
+                            <option value="End of Practicum">End of Practicum</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4 text-sm text-gray-600 bg-blue-50 p-3 rounded border border-blue-100">
+                    <strong>Scoring Scale:</strong> 1 (Poor) | 2 (Fair) | 3 (Good) | 4 (Excellent)
+                </div>
+
+                <form id="assessmentForm" onsubmit="submitAssessment(event)">
+                    <div id="rubric-container" class="space-y-6"></div>
+                    
+                    <div class="mt-8 space-y-4 bg-white p-4 border rounded shadow-sm">
+                        <h4 class="font-bold text-gray-800 border-b pb-2">Other Information</h4>
+                        <div>
+                            <label class="block text-sm font-bold mb-1">Monthly Allowance (RM) <span class="font-normal text-gray-500">(Optional)</span></label>
+                            <input type="number" id="eval-allowance" class="w-full p-2 border rounded" placeholder="e.g. 500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1">General Comments / Feedback</label>
+                            <textarea id="eval-comments" class="w-full p-2 border rounded h-24" placeholder="Any additional remarks regarding the student's performance..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3 sticky bottom-0 bg-gray-50 py-2 border-t mt-4">
+                        <button type="button" onclick="closeAssessmentModal()" class="px-6 py-2 bg-gray-300 text-gray-800 rounded font-bold hover:bg-gray-400">Cancel</button>
+                        <button type="submit" id="submitEvalBtn" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">Submit Assessment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CUSTOM MESSAGE BOX (Replaces alert) ================= -->
+    <div id="msg-box" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center">
+            <p id="msg-text" class="mb-6 text-gray-800 font-medium"></p>
+            <button onclick="document.getElementById('msg-box').classList.add('hidden')" class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">OK</button>
+        </div>
+    </div>
+
+    <!-- ================= SCRIPT LOGIC ================= -->
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzxn_mvDZsc-bx_6x_bOp9WVzX3hsEf_bN6FooT8pxweyaXfC2PxXOTZz7WH5LmF94PWA/exec"; 
+        
+        let currentLogs = [];
+        let activeLogId = null;
+        let editingLogId = null;
+
+        const rubricCriteria = [
+            { category: "KNOWLEDGE", criteria: ["Understanding of Organization's Governance", "Knowledge of Key Business Principles", "Ability to Apply Knowledge into Practices"] },
+            { category: "COMMUNICATION SKILLS", criteria: ["Attentiveness", "Answering Questions", "Questioning"] },
+            { category: "CRITICAL THINKING", criteria: ["Problem Identification and Supporting Evidence", "Proposed Solution(s)"] },
+            { category: "IT PROFICIENCY", criteria: ["Application of IT"] },
+            { category: "TEAMWORK", criteria: ["Attitude toward Team Members", "Contribution to the Team"] },
+            { category: "LEADERSHIP", criteria: ["Leadership Skills"] },
+            { category: "LIFE-LONG LEARNING", criteria: ["Seeking Information", "Being Resourceful"] },
+            { category: "PROFESSIONAL ETHICS", criteria: ["Knowledge of Ethics", "Ethical Behaviour"] },
+            { category: "ATTITUDE AT WORKPLACE", criteria: ["Log Book Maintenance", "Respect for Others", "Punctuality", "Meeting Deadlines", "Personal Appearance"] }
+        ];
+
+        // Safe message box replacing standard browser alerts
+        function showMsg(message) {
+            document.getElementById('msg-text').innerText = message;
+            document.getElementById('msg-box').classList.remove('hidden');
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(e => console.log(e)));
+        }
+
+        window.addEventListener('load', () => { 
+            updateOnlineStatus(); 
+            checkPendingSync(); 
+            checkExistingDrafts(); 
+            if(localStorage.getItem("sessionToken")) showDashboard(localStorage.getItem("userRole")); 
+        });
+        
+        window.addEventListener('online', () => { 
+            updateOnlineStatus(); 
+            syncPendingLogs(); 
+        });
+        
+        window.addEventListener('offline', updateOnlineStatus);
+
+        function updateOnlineStatus() {
+            const statusDiv = document.getElementById('connection-status');
+            const submitBtn = document.getElementById('submitBtn');
+            if (navigator.onLine) {
+                statusDiv.classList.add('hidden');
+                if(submitBtn) submitBtn.innerText = editingLogId ? "Resubmit Log" : "Submit Log";
+            } else {
+                statusDiv.classList.remove('hidden');
+                if(submitBtn) submitBtn.innerText = "Save to Outbox (Offline)";
+            }
+        }
+
+        async function apiCall(payload) {
+            const response = await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
+            return response.json();
+        }
+
+        async function requestOTP() {
+            const email = document.getElementById("email").value;
+            if (!email) return showMsg("Please enter an email address.");
+            document.getElementById("login-msg").innerText = "Sending code...";
+            try {
+                const res = await apiCall({ action: "requestOTP", email: email });
+                if (res.success) {
+                    document.getElementById("login-msg").innerText = "Check your email!";
+                    document.getElementById("otp-step").classList.remove("hidden");
+                } else document.getElementById("login-msg").innerText = res.message;
+            } catch(e) { document.getElementById("login-msg").innerText = "Network error. Try again."; }
+        }
+
+        async function verifyOTP() {
+            const email = document.getElementById("email").value;
+            const otp = document.getElementById("otp").value;
+            document.getElementById("login-msg").innerText = "Verifying...";
+            try {
+                const res = await apiCall({ action: "verifyOTP", email: email, otp: otp });
+                if (res.success) {
+                    localStorage.setItem("sessionToken", res.token);
+                    localStorage.setItem("userRole", res.role);
+                    localStorage.setItem("userEmail", email);
+                    showDashboard(res.role);
+                } else {
+                    document.getElementById("login-msg").innerText = res.message;
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById("login-msg").innerText = "Network error: Make sure your GAS_URL is correct and deployed to 'Anyone'.";
+            }
+        }
+
+        function logout() { localStorage.clear(); location.reload(); }
+
+        function showDashboard(role) {
+            document.getElementById("login-section").classList.add("hidden");
+            if (role === "Student") {
+                document.getElementById("student-section").classList.remove("hidden");
+                fetchStudentLogs(); 
+            }
+            else if (role === "Industrial") { document.getElementById("supervisor-section").classList.remove("hidden"); fetchSupervisorLogs(); }
+            else if (role === "University") { document.getElementById("lecturer-section").classList.remove("hidden"); fetchLecturerDashboard(); }
+        }
+
+        function toggleOtherSkill() {
+            const otherCheckbox = document.getElementById('skills-other-checkbox');
+            const otherText = document.getElementById('skills-other-text');
+            if (otherCheckbox.checked) {
+                otherText.classList.remove('hidden');
+                otherText.focus();
+            } else {
+                otherText.classList.add('hidden');
+                otherText.value = ''; 
+            }
+        }
+
+        function getFormData() {
+            let selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked')).map(cb => cb.value);
+            const otherCheckbox = document.getElementById('skills-other-checkbox');
+            const otherText = document.getElementById('skills-other-text');
+            if (otherCheckbox && otherCheckbox.checked && otherText.value.trim() !== '') {
+                selectedSkills.push(otherText.value.trim());
+            }
+
+            return {
+                date: document.getElementById("date").value,
+                startTime: document.getElementById("startTime").value,
+                endTime: document.getElementById("endTime").value,
+                tasks: document.getElementById("tasks").value,
+                reflection: document.getElementById("reflection").value,
+                challenges: document.getElementById("challenges").value,
+                skills: selectedSkills.join(', ') 
+            };
+        }
+
+        function saveDraft() {
+            localStorage.setItem("logDraft", JSON.stringify(getFormData()));
+            showMsg("Draft saved locally.");
+            checkExistingDrafts();
+        }
+
+        function checkExistingDrafts() {
+            if (localStorage.getItem("logDraft")) document.getElementById("loadDraftBtn").classList.remove('hidden');
+            else document.getElementById("loadDraftBtn").classList.add('hidden');
+        }
+
+        function loadDraft() {
+            const draft = JSON.parse(localStorage.getItem("logDraft"));
+            if (draft) {
+                document.getElementById("date").value = draft.date || "";
+                document.getElementById("startTime").value = draft.startTime || "";
+                document.getElementById("endTime").value = draft.endTime || "";
+                document.getElementById("tasks").value = draft.tasks || "";
+                document.getElementById("reflection").value = draft.reflection || "";
+                document.getElementById("challenges").value = draft.challenges || "";
+                
+                document.querySelectorAll('input[name="skills"]').forEach(cb => cb.checked = false);
+                const otherCheckbox = document.getElementById('skills-other-checkbox');
+                const otherText = document.getElementById('skills-other-text');
+                otherCheckbox.checked = false; otherText.value = ''; otherText.classList.add('hidden');
+
+                if (draft.skills) {
+                    const savedSkills = draft.skills.split(', ');
+                    let customSkills = [];
+                    savedSkills.forEach(skill => {
+                        let matched = false;
+                        document.querySelectorAll('input[name="skills"]').forEach(cb => { if (cb.value === skill) { cb.checked = true; matched = true; } });
+                        if (!matched && skill.trim() !== "") customSkills.push(skill);
+                    });
+                    if (customSkills.length > 0) {
+                        otherCheckbox.checked = true;
+                        otherText.classList.remove('hidden');
+                        otherText.value = customSkills.join(', ');
+                    }
+                }
+            }
+        }
+
+        async function fetchStudentLogs() {
+            const res = await apiCall({ action: "getStudentLogs", token: localStorage.getItem("sessionToken") });
+            const tbody = document.getElementById("student-logs-body");
+            tbody.innerHTML = "";
+            if (res.success && res.logs.length > 0) {
+                currentLogs = res.logs;
+                res.logs.forEach(log => {
+                    let statusColor = "text-gray-600";
+                    if (log.status === 'Approved') statusColor = 'text-green-600';
+                    else if (log.status === 'Submitted') statusColor = 'text-blue-600';
+                    else if (log.status === 'Revision Required') statusColor = 'text-yellow-600';
+                    else if (log.status === 'Rejected') statusColor = 'text-red-600';
+
+                    let actionBtn = `<span class="text-gray-400 text-xs">Locked</span>`;
+                    if (log.status === 'Revision Required') {
+                        actionBtn = `<button type="button" onclick="editLog('${log.logId}')" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600">Revise</button>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-2 whitespace-nowrap">${log.displayDateStr}</td>
+                            <td class="p-2 font-bold ${statusColor} whitespace-nowrap">${log.status}</td>
+                            <td class="p-2 text-xs text-gray-600 whitespace-normal break-words">${log.feedback || '-'}</td>
+                            <td class="p-2 whitespace-nowrap text-center">${actionBtn}</td>
+                        </tr>`;
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500">No logs submitted yet.</td></tr>`;
+            }
+        }
+
+        function editLog(logId) {
+            const log = currentLogs.find(l => l.logId === logId);
+            if (!log) return;
+            
+            editingLogId = logId; 
+            
+            document.getElementById("date").value = log.date;
+            document.getElementById("startTime").value = log.startTime;
+            document.getElementById("endTime").value = log.endTime;
+            document.getElementById("tasks").value = log.tasks;
+            document.getElementById("reflection").value = log.reflection;
+            document.getElementById("challenges").value = log.challenges;
+            
+            document.querySelectorAll('input[name="skills"]').forEach(cb => cb.checked = false);
+            const otherCheckbox = document.getElementById('skills-other-checkbox');
+            const otherText = document.getElementById('skills-other-text');
+            otherCheckbox.checked = false; otherText.value = ''; otherText.classList.add('hidden');
+
+            if (log.skills) {
+                const savedSkills = log.skills.split(', ');
+                let customSkills = [];
+                savedSkills.forEach(skill => {
+                    let matched = false;
+                    document.querySelectorAll('input[name="skills"]').forEach(cb => { if (cb.value === skill) { cb.checked = true; matched = true; } });
+                    if (!matched && skill.trim() !== "") customSkills.push(skill);
+                });
+                if (customSkills.length > 0) {
+                    otherCheckbox.checked = true;
+                    otherText.classList.remove('hidden');
+                    otherText.value = customSkills.join(', ');
+                }
+            }
+
+            document.getElementById("submitBtn").innerText = "Resubmit Log";
+            document.getElementById("draftBtn").classList.add("hidden");
+            document.getElementById("cancelEditBtn").classList.remove("hidden");
+            document.getElementById("form-msg").innerText = "Editing previous log. Submit to save revisions.";
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            editingLogId = null;
+            document.getElementById("logForm").reset();
+            toggleOtherSkill();
+            document.getElementById("submitBtn").innerText = "Submit Log";
+            document.getElementById("draftBtn").classList.remove("hidden");
+            document.getElementById("cancelEditBtn").classList.add("hidden");
+            document.getElementById("form-msg").innerText = "";
+        }
+
+        async function submitLog(e) {
+            e.preventDefault();
+
+            const otherCheckbox = document.getElementById('skills-other-checkbox');
+            const otherText = document.getElementById('skills-other-text');
+            if (otherCheckbox && otherCheckbox.checked && otherText.value.trim() === '') {
+                showMsg("Please type your custom skill, or uncheck the 'Other' box before submitting.");
+                otherText.focus(); 
+                return; 
+            }
+
+            const logData = getFormData();
+            const token = localStorage.getItem("sessionToken");
+
+            if (!navigator.onLine) {
+                let pendingLogs = JSON.parse(localStorage.getItem("pendingLogs")) || [];
+                pendingLogs.push({ token: token, logData: logData, logId: editingLogId });
+                localStorage.setItem("pendingLogs", JSON.stringify(pendingLogs));
+                document.getElementById("form-msg").innerText = "Offline. Log saved to outbox (auto-syncing when connected).";
+                cancelEdit(); 
+                localStorage.removeItem("logDraft"); checkExistingDrafts();
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "Submitting...";
+
+            try {
+                const res = await apiCall({ action: "submitLog", token: token, logData: logData, logId: editingLogId });
+                if (res.success) {
+                    document.getElementById("form-msg").innerText = res.message || "Log successfully submitted!";
+                    cancelEdit(); 
+                    localStorage.removeItem("logDraft"); checkExistingDrafts();
+                    fetchStudentLogs(); 
+                    setTimeout(() => document.getElementById("form-msg").innerText = "", 3000);
+                } else showMsg(res.message);
+            } catch(err) { showMsg("Failed to submit. Check your connection."); }
+            
+            btn.innerText = editingLogId ? "Resubmit Log" : "Submit Log";
+        }
+
+        async function syncPendingLogs() {
+            let pendingLogs = JSON.parse(localStorage.getItem("pendingLogs")) || [];
+            if (pendingLogs.length === 0) return;
+            document.getElementById("form-msg").innerText = `Syncing ${pendingLogs.length} offline logs...`;
+            let successfulSyncs = [];
+            for (let i = 0; i < pendingLogs.length; i++) {
+                try {
+                    const res = await apiCall({ action: "submitLog", token: pendingLogs[i].token, logData: pendingLogs[i].logData, logId: pendingLogs[i].logId });
+                    if (res.success) successfulSyncs.push(i);
+                } catch (error) { console.error(error); }
+            }
+            if (successfulSyncs.length > 0) {
+                pendingLogs = pendingLogs.filter((_, index) => !successfulSyncs.includes(index));
+                localStorage.setItem("pendingLogs", JSON.stringify(pendingLogs));
+                document.getElementById("form-msg").innerText = "Offline logs successfully synced!";
+                fetchStudentLogs(); 
+                setTimeout(() => document.getElementById("form-msg").innerText = "", 3000);
+            }
+        }
+        function checkPendingSync() { if (navigator.onLine) syncPendingLogs(); }
+
+        async function fetchSupervisorLogs() {
+            const res = await apiCall({ action: "getSupervisorLogs", token: localStorage.getItem("sessionToken") });
+            const tbody = document.getElementById("logs-table-body");
+            tbody.innerHTML = "";
+            if (res.success && res.logs.length > 0) {
+                currentLogs = res.logs;
+                
+                // Populate student dropdown for Evaluation
+                const studentSelect = document.getElementById("eval-student-select");
+                studentSelect.innerHTML = '<option value="">-- Choose Student --</option>';
+                let uniqueStudents = new Set();
+
+                res.logs.forEach(log => {
+                    let statusColor = log.status === 'Approved' ? 'text-green-600' : (log.status === 'Submitted' ? 'text-blue-600' : (log.status === 'Revision Required' ? 'text-yellow-600' : 'text-red-600'));
+                    tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2 whitespace-nowrap">${log.date}</td><td class="p-2 whitespace-nowrap"><span class="font-semibold">${log.studentName}</span><br><span class="text-xs text-gray-500">${log.studentEmail}</span></td><td class="p-2 font-bold ${statusColor} whitespace-nowrap">${log.status}</td><td class="p-2 whitespace-nowrap"><button onclick="openModal('${log.logId}')" class="bg-gray-800 text-white px-3 py-1 rounded text-sm hover:bg-black">Review</button></td></tr>`;
+                    
+                    if(!uniqueStudents.has(log.studentEmail)) {
+                        uniqueStudents.add(log.studentEmail);
+                        studentSelect.innerHTML += `<option value="${log.studentEmail}">${log.studentName} (${log.studentEmail})</option>`;
+                    }
+                });
+            } else tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center">No logs found.</td></tr>`;
+        }
+
+        function openModal(logId) {
+            activeLogId = logId;
+            const log = currentLogs.find(l => l.logId === logId);
+            document.getElementById("modal-content").innerHTML = `<p><strong>Student:</strong> ${log.studentName} (${log.studentEmail})</p><p><strong>Tasks:</strong><br>${log.tasks}</p><p><strong>Reflection:</strong><br>${log.reflection}</p><p><strong>Challenges:</strong><br>${log.challenges}</p><p><strong>Skills:</strong><br>${log.skills}</p>`;
+            document.getElementById("supervisor-feedback").value = log.feedback || "";
+            document.getElementById("review-modal").classList.remove("hidden");
+        }
+        function closeModal() { document.getElementById("review-modal").classList.add("hidden"); activeLogId = null; }
+
+        async function processReview(status) {
+            const feedback = document.getElementById("supervisor-feedback").value.trim();
+            if ((status === 'Revision Required' || status === 'Rejected') && !feedback) return showMsg("Feedback is mandatory for revisions/rejections.");
+            const res = await apiCall({ action: "updateLogStatus", token: localStorage.getItem("sessionToken"), logId: activeLogId, status: status, feedback: feedback });
+            if (res.success) { showMsg(`Log marked as ${status}. Student notified.`); closeModal(); fetchSupervisorLogs(); } else showMsg(res.message);
+        }
+
+        // ==========================================
+        // ASSESSMENT LOGIC
+        // ==========================================
+        function openAssessmentModal() {
+            const container = document.getElementById("rubric-container");
+            container.innerHTML = "";
+            let html = "";
+            
+            rubricCriteria.forEach((cat, cIdx) => {
+                html += `<div class="bg-white p-4 border rounded shadow-sm"><h4 class="font-bold text-blue-700 border-b pb-2 mb-3 uppercase">${cat.category}</h4>`;
+                cat.criteria.forEach((crit, idx) => {
+                    const id = `score_${cIdx}_${idx}`;
+                    html += `
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-800 mb-2">${crit}</label>
+                            <div class="flex gap-2 sm:gap-4">
+                                <label class="flex-1 text-center bg-gray-50 border rounded p-2 cursor-pointer hover:bg-blue-50 transition"><input type="radio" name="${id}" value="1" class="mb-1 block mx-auto" required> 1 (Poor)</label>
+                                <label class="flex-1 text-center bg-gray-50 border rounded p-2 cursor-pointer hover:bg-blue-50 transition"><input type="radio" name="${id}" value="2" class="mb-1 block mx-auto"> 2 (Fair)</label>
+                                <label class="flex-1 text-center bg-gray-50 border rounded p-2 cursor-pointer hover:bg-blue-50 transition"><input type="radio" name="${id}" value="3" class="mb-1 block mx-auto"> 3 (Good)</label>
+                                <label class="flex-1 text-center bg-gray-50 border rounded p-2 cursor-pointer hover:bg-blue-50 transition"><input type="radio" name="${id}" value="4" class="mb-1 block mx-auto"> 4 (Excellent)</label>
+                            </div>
+                        </div>`;
+                });
+                html += `</div>`;
+            });
+            container.innerHTML = html;
+            document.getElementById("assessment-modal").classList.remove("hidden");
+        }
+
+        function closeAssessmentModal() {
+            document.getElementById("assessmentForm").reset();
+            document.getElementById("assessment-modal").classList.add("hidden");
+        }
+
+        async function submitAssessment(e) {
+            e.preventDefault();
+            const studentEmail = document.getElementById("eval-student-select").value;
+            if (!studentEmail) return showMsg("Please select a student to evaluate.");
+
+            const btn = document.getElementById('submitEvalBtn');
+            btn.innerText = "Submitting...";
+            btn.disabled = true;
+
+            let scores = {};
+            rubricCriteria.forEach((cat, cIdx) => {
+                cat.criteria.forEach((crit, idx) => {
+                    const val = document.querySelector(`input[name="score_${cIdx}_${idx}"]:checked`).value;
+                    scores[crit] = parseInt(val);
+                });
+            });
+
+            const data = {
+                studentEmail: studentEmail,
+                period: document.getElementById("eval-period").value,
+                allowance: document.getElementById("eval-allowance").value,
+                comments: document.getElementById("eval-comments").value,
+                scores: scores
+            };
+
+            try {
+                const res = await apiCall({ action: "submitAssessment", token: localStorage.getItem("sessionToken"), data: data });
+                if (res.success) {
+                    showMsg("Assessment saved successfully!");
+                    closeAssessmentModal();
+                } else showMsg(res.message);
+            } catch(err) { showMsg("Network error. Try again."); }
+            
+            btn.innerText = "Submit Assessment";
+            btn.disabled = false;
+        }
+
+        // ==========================================
+        // LECTURER & PDF LOGIC
+        // ==========================================
+        async function fetchLecturerDashboard() {
+            const res = await apiCall({ action: "getLecturerDashboard", token: localStorage.getItem("sessionToken") });
+            const tbody = document.getElementById("lecturer-table-body");
+            const summaryDiv = document.getElementById("lecturer-summary");
+            tbody.innerHTML = ""; summaryDiv.innerHTML = "";
+            if (res.success && res.progressData.length > 0) {
+                let cohortTotal = 0, cohortApproved = 0, cohortPending = 0;
+                res.progressData.forEach(student => {
+                    cohortTotal += student.total; cohortApproved += student.approved; cohortPending += student.pending;
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-2 whitespace-nowrap">
+                                <span class="font-medium">${student.studentName}</span><br>
+                                <span class="text-xs text-gray-500">${student.studentEmail}</span>
+                            </td>
+                            <td class="p-2 text-center whitespace-nowrap">${student.total}</td>
+                            <td class="p-2 text-center text-green-600 font-bold whitespace-nowrap">${student.approved}</td>
+                            <td class="p-2 text-center text-blue-600 font-bold whitespace-nowrap">${student.pending}</td>
+                            <td class="p-2 text-center text-yellow-600 font-bold whitespace-nowrap">${student.revisions}</td>
+                            <td class="p-2 text-center whitespace-nowrap">
+                                <button onclick="generateReport('${student.studentEmail}')" class="bg-gray-800 text-white px-3 py-1 rounded text-sm hover:bg-black">PDF</button>
+                            </td>
+                        </tr>`;
+                });
+                summaryDiv.innerHTML = `<div class="bg-gray-50 p-4 border rounded shadow-sm text-center"><p class="text-sm text-gray-500">Assigned Students</p><p class="text-2xl font-bold">${res.progressData.length}</p></div><div class="bg-blue-50 p-4 border rounded shadow-sm text-center"><p class="text-sm text-blue-600">Total Logs Submitted</p><p class="text-2xl font-bold text-blue-700">${cohortTotal}</p></div><div class="bg-green-50 p-4 border rounded shadow-sm text-center"><p class="text-sm text-green-600">Overall Approved</p><p class="text-2xl font-bold text-green-700">${cohortApproved}</p></div>`;
+            } else tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center">No student data found.</td></tr>`;
+        }
+
+        async function generateReport(targetEmail = null) {
+            const emailToFetch = targetEmail || localStorage.getItem("userEmail");
+            if (!emailToFetch) return showMsg("Error: Could not identify student email.");
+            
+            showMsg("Generating report... This may take a few seconds.");
+            const res = await apiCall({ action: "getStudentReport", token: localStorage.getItem("sessionToken"), studentEmail: emailToFetch });
+            
+            if (res.success) {
+                document.getElementById('msg-box').classList.add('hidden'); // hide generating msg
+                if (res.logs.length === 0) return showMsg("No approved logs found to print.");
+                buildAndPrintPDF(emailToFetch, res.studentName, res.matricNumber, res.supervisorName, res.companyName, res.lecturerName, res.logs);
+            } else {
+                showMsg(res.message);
+            }
+        }
+
+        function buildAndPrintPDF(studentEmail, studentName, matricNumber, supervisorName, companyName, lecturerName, logs) {
+            let printContent = `
+                <style>
+                    /* This hides the browser's default date and url headers */
+                    @page { margin: 0; size: auto; }
+                    body { font-family: Arial, sans-serif; padding: 40px; color: #000; }
+                    
+                    /* Centered main title */
+                    h1 { text-align: center; color: #1a56db; margin-bottom: 20px; text-transform: uppercase; font-size: 22px; }
+                    
+                    /* Clean table structure for details headers with NO spacing between them */
+                    .header-table { width: 100%; border-collapse: collapse; margin-bottom: 0; padding: 0; }
+                    .header-table td { padding: 2px 0; vertical-align: top; }
+                    .label { font-weight: bold; width: 120px; }
+                    .colon { width: 20px; font-weight: bold; }
+                    
+                    .section-title { color: #0284c7; font-weight: bold; font-size: 14px; text-transform: uppercase; padding-top: 10px; margin: 0; }
+                    
+                    /* Logs styling */
+                    .log-entry { border: 1px solid #888; padding: 15px; margin-top: 15px; page-break-inside: avoid; }
+                    
+                    /* STRICT float logic for right-aligned signature block */
+                    .signature-container { margin-top: 40px; width: 100%; display: block; overflow: hidden; page-break-inside: avoid; }
+                    .signature-box { float: right; width: 250px; text-align: center; }
+                    .sig-label { font-weight: bold; margin-bottom: 40px; font-size: 12px; }
+                    .sig-line { border-bottom: 1px solid #000; margin-bottom: 5px; width: 100%; }
+                </style>
+                
+                <h1>Final Internship e-Logbook</h1>
+                
+                <h3 class="section-title">STUDENT DETAILS:</h3>
+                <table class="header-table">
+                    <tr><td class="label">Name</td><td class="colon">:</td><td>${studentName}</td></tr>
+                    <tr><td class="label">Matric No</td><td class="colon">:</td><td>${matricNumber}</td></tr>
+                </table>
+
+                <h3 class="section-title">PLACEMENT DETAILS:</h3>
+                <table class="header-table">
+                    <tr><td class="label">Company</td><td class="colon">:</td><td>${companyName}</td></tr>
+                    <tr><td class="label">Supervisor</td><td class="colon">:</td><td>${supervisorName}</td></tr>
+                </table>
+
+                <h3 class="section-title">UNIVERSITY DETAILS:</h3>
+                <table class="header-table">
+                    <tr><td class="label">Lecturer</td><td class="colon">:</td><td>${lecturerName}</td></tr>
+                </table>
+            `;
+
+            logs.forEach(log => {
+                printContent += `
+                    <div class="log-entry">
+                        <div style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;"><strong>Date:</strong> ${log.date} &nbsp;|&nbsp; <strong>Hours:</strong> ${log.hours}</div>
+                        <p style="margin-top:0"><strong>Duties & Tasks:</strong><br>${log.tasks.replace(/\n/g, '<br>')}</p>
+                        <p><strong>Learning Reflection:</strong><br>${log.reflection.replace(/\n/g, '<br>')}</p>
+                        <p><strong>Skills Developed:</strong><br>${log.skills.replace(/\n/g, '<br>')}</p>
+                        <div style="background-color: #f9f9f9; padding: 10px; margin-top: 15px; border-left: 4px solid #10b981;"><strong>Supervisor Feedback (${supervisorName}):</strong><br>${log.feedback || "Approved without comment."}</div>
+                    </div>`;
+            });
+
+            // Append Signature Block
+            printContent += `
+                <div class="signature-container">
+                    <div class="signature-box">
+                        <div class="sig-label">Supervisor’s Signature & Company Stamp</div>
+                        <div class="sig-line"></div>
+                        <div style="font-weight: bold;">${supervisorName}</div>
+                        <div>${companyName}</div>
+                        <div style="text-align: left; margin-top: 15px;">Date:</div>
+                    </div>
+                </div>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`<html><head><title>e-Logbook - ${studentName}</title></head><body>${printContent}</body></html>`);
+            printWindow.document.close();
+            setTimeout(() => { printWindow.focus(); printWindow.print(); }, 500);
+        }
+    </script>
+</body>
+</html>
